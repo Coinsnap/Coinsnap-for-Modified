@@ -10,31 +10,33 @@
     var $SortOrder;
     var $enabled;    
     var $_check;
-    
+    var $referralCode;
     var $signature;
     var $ApiUrl;
     public const WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
-
     
-    function __construct() {
-      global $order;
+    
+    function __construct(){
+        global $order;
 
-      $this->signature = 'coinsnap|1.0|2.2';
-      $this->code = 'coinsnap';
-      $this->title = MODULE_PAYMENT_COINSNAP_TEXT_TITLE;
-      $this->description = MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION;
-      $this->SortOrder = defined('MODULE_PAYMENT_COINSNAP_SORT_ORDER')?MODULE_PAYMENT_COINSNAP_SORT_ORDER:'';
-      $this->enabled = ((defined('MODULE_PAYMENT_COINSNAP_STATUS') && MODULE_PAYMENT_COINSNAP_STATUS == 'True') ? true : false);
-      $this->ApiUrl = 'https://app.coinsnap.io';
-      $this->StoreId = defined('MODULE_PAYMENT_COINSNAP_STORE_ID')?MODULE_PAYMENT_COINSNAP_STORE_ID:'';
-      $this->ApiKey = defined('MODULE_PAYMENT_COINSNAP_API_KEY')?MODULE_PAYMENT_COINSNAP_API_KEY:'';
+        $this->signature = 'coinsnap|1.0.0|2.2';
+        $this->code = 'coinsnap';
+        $this->title = MODULE_PAYMENT_COINSNAP_TEXT_TITLE;
+        $this->description = MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION;
+        $this->SortOrder = defined('MODULE_PAYMENT_COINSNAP_SORT_ORDER')?MODULE_PAYMENT_COINSNAP_SORT_ORDER:'';
+        $this->enabled = ((defined('MODULE_PAYMENT_COINSNAP_STATUS') && MODULE_PAYMENT_COINSNAP_STATUS == 'True') ? true : false);
+        $this->ApiUrl = 'https://app.coinsnap.io';
+        $this->StoreId = defined('MODULE_PAYMENT_COINSNAP_STORE_ID')?MODULE_PAYMENT_COINSNAP_STORE_ID:'';
+        $this->ApiKey = defined('MODULE_PAYMENT_COINSNAP_API_KEY')?MODULE_PAYMENT_COINSNAP_API_KEY:'';
+        $this->referralCode = 'D19385';
   
-      if (!defined('RUN_MODE_ADMIN') && is_object($order)) {
-        $this->update_status();
-      }
-      if (!defined('COINSNAP_SERVER_PATH'))	define( 'COINSNAP_SERVER_PATH', 'stores' );  
-
+        if (!defined('RUN_MODE_ADMIN') && is_object($order)) {
+            $this->update_status();
+        }
       
+        if (!defined('COINSNAP_SERVER_PATH')){
+            define( 'COINSNAP_SERVER_PATH', 'stores' );  
+        }
     }
 
     // class methods
@@ -139,7 +141,7 @@
 			  $buyerEmail,
 			  $buyerName, 
 			  $redirectUrl,
-			  '',     
+			  $this->referralCode,     
 			  $metadata,
 			  $checkoutOptions
 		  );
