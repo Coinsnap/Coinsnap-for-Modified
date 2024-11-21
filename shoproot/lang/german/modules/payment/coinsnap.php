@@ -1,6 +1,6 @@
 <?php
-  define('MODULE_PAYMENT_COINSNAP_TEXT_TITLE', 'Coinsnap');
-  define('MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION', 'Bezahlen Sie mit Bitcoin + Lightning');  
+  define('MODULE_PAYMENT_COINSNAP_TEXT_TITLE', 'Bitcoin + Lightning');
+  define('MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION', 'Bitcoin + Lightning Zahlung mit Coinsnap');  
 
   define('MODULE_PAYMENT_COINSNAP_SORT_ORDER_TITLE', 'Anzeigereihenfolge');
   define('MODULE_PAYMENT_COINSNAP_SORT_ORDER_DESC', 'Reihenfolge der Anzeige. Kleinste Ziffer wird zuerst angezeigt.');

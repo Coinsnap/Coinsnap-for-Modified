@@ -1,6 +1,6 @@
 <?php
-  define('MODULE_PAYMENT_COINSNAP_TEXT_TITLE', 'Coinsnap');
-  define('MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION', 'Pay using Bitcoin + Lightning');  
+  define('MODULE_PAYMENT_COINSNAP_TEXT_TITLE', 'Bitcoin + Lightning');
+  define('MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION', 'Bitcoin + Lightning Payment powered with Coinsnap');  
   define('MODULE_PAYMENT_COINSNAP_SORT_ORDER_TITLE', 'Sort order of display.');
   define('MODULE_PAYMENT_COINSNAP_SORT_ORDER_DESC', 'Sort order of display. Lowest is displayed first.');
   define('MODULE_PAYMENT_COINSNAP_STATUS_TITLE', 'Enable Coinsnap Module');
