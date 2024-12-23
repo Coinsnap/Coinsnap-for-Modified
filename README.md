@@ -1,5 +1,5 @@
 # Coinsnap for Modified Shop #
-![Coinsnap for Modified Shop](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/cover.png)
+![Coinsnap for Modified Shop](https://resources.coinsnap.org/products/modified/images/cover.png)
 ## Accept Bitcoin and Lightning Payments in Modified Shop ##
 
 * Contributors: coinsnap
@@ -97,7 +97,7 @@ Login to Modified Shop as admin
 
 Click on Admin Area button to enter in Admin Control Panel
 
-![Navigate to Modules > Payment Methods](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot1.png)
+![Navigate to Modules > Payment Methods](https://resources.coinsnap.org/products/modified/images/screenshot1.png)
 
 Navigate to Modules > Payment Methods, find there Coinsnap and click install - after installation Coinsnap will appear among **Modules installed** list
 
@@ -114,7 +114,7 @@ To do this, you need a Coinsnap account first.
 
 Open your Coinsnap account at https://app.coinsnap.io/register by simply entering your email address and a password of your choice.
 
-![Coinsnap App](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot5.png)
+![Coinsnap App](https://resources.coinsnap.org/products/modified/images/screenshot5.png)
 
 If you are using a Lightning Wallet with Lightning Login, then you can also open a Coinsnap account with it.
 
@@ -122,7 +122,7 @@ If you are using a Lightning Wallet with Lightning Login, then you can also open
 
 You will receive an email to the submitted email address with a confirmation link, which you have to confirm. If you do not find the email, please check your spam folder.
 
-![Confirm your email address](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot6.png)
+![Confirm your email address](https://resources.coinsnap.org/products/modified/images/screenshot6.png)
 
 Then, please log in to the Coinsnap backend with the appropriate credentials.
 
@@ -130,7 +130,7 @@ Then, please log in to the Coinsnap backend with the appropriate credentials.
 
 After you signed up, you will be asked to provide two pieces of information:
 
-![Connect your website with Coinsnap](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot7.png)
+![Connect your website with Coinsnap](https://resources.coinsnap.org/products/modified/images/screenshot7.png)
 
 In the “Website Name” field, enter the name of your site or online store that you want customers to see when they check out.
 
@@ -147,7 +147,7 @@ To make it all work, you need to connect your plugin with your Coinsnap account.
 
 ### 3.1. Coinsnap for Modified Shop Settings ###
 
-![Coinsnap for Modified Shop Settings](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot2.png)
+![Coinsnap for Modified Shop Settings](https://resources.coinsnap.org/products/modified/images/screenshot2.png)
 
 * Modules > Payment Methods, find there Coinsnap and press on the raw - the page with Coinsnap settings will open.
 * Enable Coinsnap Module (click "Yes").
@@ -163,11 +163,11 @@ To make it all work, you need to connect your plugin with your Coinsnap account.
 
 If you want to see how Bitcoin Lightning payment works in a Modified Shop, just go to our [demo store](https://modified-shop.coinsnap.org/) and make a test order. 
 
-![Test payment in Modified Shop](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot3.png)
+![Test payment in Modified Shop](https://resources.coinsnap.org/products/modified/images/screenshot3.png)
 
 On checlout after you'll enter all the cliend's data you will see the Bitcoin Lightning payment page:
 
-![Bitcoin Lightning payment page](https://github.com/Coinsnap/Coinsnap-for-Modified/blob/main/assets/images/screenshot4.png)
+![Bitcoin Lightning payment page](https://resources.coinsnap.org/products/modified/images/screenshot4.png)
 
 ### 4.2. Bitcoin Lightning payment page ###
 
