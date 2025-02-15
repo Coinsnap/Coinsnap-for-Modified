@@ -21,9 +21,9 @@ With the Coinsnap Bitcoin Lightning payment plugin for Modified Shop you only ne
 
 More information:
 
-* Modified Shop Coinsnap Demo Site: https://modified-shop.coinsnap.org/
-* Blog Article: https://coinsnap.io/en/coinsnap-for-modified-shop/
-* GitHub: https://github.com/Coinsnap/Coinsnap-for-Modified 
+* Modified Shop Coinsnap Demo Site: [https://modified-shop.coinsnap.org/](https://modified-shop.coinsnap.org/)
+* Blog Article: [https://coinsnap.io/coinsnap-for-modified-shop/](https://coinsnap.io/coinsnap-for-modified-shop/)
+* GitHub: [https://github.com/Coinsnap/Coinsnap-for-Modified](https://github.com/Coinsnap/Coinsnap-for-Modified)
 
 # Enable Bitcoin Lightning payments in Modified Shop with Coinsnap #
 
