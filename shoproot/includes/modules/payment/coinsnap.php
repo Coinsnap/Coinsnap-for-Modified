@@ -1,5 +1,5 @@
 <?php
-  require_once(DIR_FS_EXTERNAL.'/coinsnap/autoload.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap/loader.php');
   
   class coinsnap {
   
@@ -13,13 +13,15 @@
     var $referralCode;
     var $signature;
     var $ApiUrl;
-    public const WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
+    
+    public const COINSNAP_WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
+    public const BTCPAY_WEBHOOK_EVENTS = ['InvoiceCreated','InvoiceExpired','InvoiceSettled','InvoiceProcessing'];
     
     
     function __construct(){
         global $order;
 
-        $this->signature = 'coinsnap|1.0.0|2.2';
+        $this->signature = 'coinsnap|1.1.0|2.2';
         $this->code = 'coinsnap';
         $this->title = MODULE_PAYMENT_COINSNAP_TEXT_TITLE;
         $this->description = MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION;
@@ -171,36 +173,71 @@
 
     function install() {
 
-      $DefaultExpId = '4';
-      $DefaultStlId = '2';
-      $DefaultPrsId = '2';
+        $DefaultExpId = '4';
+        $DefaultStlId = '2';
+        $DefaultPrsId = '2';
 
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STATUS', 'True', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");      
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_STORE_ID', '', '6', '0', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_API_KEY', '', '6', '0', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID', '".$DefaultExpId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID', '".$DefaultStlId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");      
-      xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID', '".$DefaultPrsId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");            
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_ALLOWED', '', '6', '0', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_SORT_ORDER', '0', '6', '0', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, use_function, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_ZONE', '0', '6', '2', 'xtc_get_zone_class_title', 'xtc_cfg_pull_down_zone_classes(', now())");      
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STATUS', 'True', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");
+
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_PROVIDER', '', '6', '0', now())");
+      
+      
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_STORE_ID', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_API_KEY', '', '6', '0', now())");
+        
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_SERVER_URL', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_STORE_ID', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_API_KEY', '', '6', '0', now())");
+      
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_AUTOREDIRECT', 'True', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");
+        
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_RETURNURL', '', '6', '0', now())");
+        
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_DISCOUNT_ENABLED', 'False', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");
+        
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_DISCOUNT_TYPE', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_DISCOUNT_AMOUNT', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_DISCOUNT_AMOUNT_LIMIT', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_DISCOUNT_PERCENTAGE', '', '6', '0', now())");
+        
+      
+        xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID', '".$DefaultExpId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID', '".$DefaultStlId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");      
+        xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID', '".$DefaultPrsId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");            
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_ALLOWED', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_SORT_ORDER', '0', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, use_function, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_ZONE', '0', '6', '2', 'xtc_get_zone_class_title', 'xtc_cfg_pull_down_zone_classes(', now())");      
     }
 
     function remove() {
-      xtc_db_query("delete from " . TABLE_CONFIGURATION . " where configuration_key in ('" . implode("', '", $this->keys()) . "')");
+        xtc_db_query("delete from " . TABLE_CONFIGURATION . " where configuration_key in ('" . implode("', '", $this->keys()) . "')");
     }
 
     function keys() {
-      return array('MODULE_PAYMENT_COINSNAP_STATUS',                   
-                   'MODULE_PAYMENT_COINSNAP_STORE_ID',
-                   'MODULE_PAYMENT_COINSNAP_API_KEY',
-                   'MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID',
-                   'MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID',
-                   'MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID',
-                   'MODULE_PAYMENT_COINSNAP_ALLOWED',
-                   'MODULE_PAYMENT_COINSNAP_ZONE',                                      
-                   'MODULE_PAYMENT_COINSNAP_SORT_ORDER',
-                   );
+        return [
+            'MODULE_PAYMENT_COINSNAP_STATUS',                   
+            'MODULE_PAYMENT_COINSNAP_PROVIDER',
+            'MODULE_PAYMENT_COINSNAP_STORE_ID',
+            'MODULE_PAYMENT_COINSNAP_API_KEY',
+            'MODULE_PAYMENT_COINSNAP_BTCPAY_SERVER_URL',
+            'MODULE_PAYMENT_COINSNAP_BTCPAY_STORE_ID',
+            'MODULE_PAYMENT_COINSNAP_BTCPAY_API_KEY',
+            
+            'MODULE_PAYMENT_COINSNAP_AUTOREDIRECT',
+            'MODULE_PAYMENT_COINSNAP_RETURNURL',
+            'MODULE_PAYMENT_COINSNAP_DISCOUNT_ENABLED',
+            'MODULE_PAYMENT_COINSNAP_DISCOUNT_TYPE',
+            'MODULE_PAYMENT_COINSNAP_DISCOUNT_AMOUNT',
+            'MODULE_PAYMENT_COINSNAP_DISCOUNT_AMOUNT_LIMIT',
+            'MODULE_PAYMENT_COINSNAP_DISCOUNT_PERCENTAGE',
+            
+            'MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID',
+            'MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID',
+            'MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID',
+            'MODULE_PAYMENT_COINSNAP_ALLOWED',
+            'MODULE_PAYMENT_COINSNAP_ZONE',                                      
+            'MODULE_PAYMENT_COINSNAP_SORT_ORDER',
+        ];
     }
 
     
