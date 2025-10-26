@@ -188,6 +188,7 @@
         xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_SERVER_URL', '', '6', '0', now())");
         xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_STORE_ID', '', '6', '0', now())");
         xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_BTCPAY_API_KEY', '', '6', '0', now())");
+        xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_WEBHOOK', '', '6', '0', now())");
       
         xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_AUTOREDIRECT', 'True', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");
         
@@ -222,6 +223,8 @@
             'MODULE_PAYMENT_COINSNAP_BTCPAY_SERVER_URL',
             'MODULE_PAYMENT_COINSNAP_BTCPAY_STORE_ID',
             'MODULE_PAYMENT_COINSNAP_BTCPAY_API_KEY',
+            
+            'MODULE_PAYMENT_COINSNAP_WEBHOOK',
             
             'MODULE_PAYMENT_COINSNAP_AUTOREDIRECT',
             'MODULE_PAYMENT_COINSNAP_RETURNURL',
