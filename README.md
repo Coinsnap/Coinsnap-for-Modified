@@ -1,176 +1,143 @@
-# Coinsnap for Modified Shop #
+# Coinsnap for Modified Shop
+
 ![Coinsnap for Modified Shop](https://resources.coinsnap.org/products/modified/images/cover.png)
-## Accept Bitcoin and Lightning Payments in Modified Shop ##
 
-* Contributors: coinsnap
-* Tags:  Coinsnap, Modified Shop, Bitcoin, Lightning
-* Requires PHP: 8.0+
-* Stable tag: 1.0.0
-* License: GPLv2
-* License URI: http://www.gnu.org/licenses/gpl-2.0.html
+**Bitcoin payment module for Modified Shop — accept Bitcoin and Lightning with Coinsnap.**
 
-The Coinsnap for Modified Shop plugin allows you to accept Bitcoin Lightning payments in e-store, created with Modified e-Commerce Shop Software.
+Coinsnap for Modified Shop is an open-source Bitcoin payment module for stores based on modified eCommerce Shopsoftware. It integrates Bitcoin payments into the existing checkout and order workflow.
 
-# Description #
+Customers can pay with **Bitcoin via Lightning or on-chain**. When using Coinsnap, merchants do not need to operate their own Bitcoin or Lightning payment infrastructure.
 
-[Coinsnap](https://coinsnap.io/en/) provides modules and plugins that enable operators of online stores and websites to receive Bitcoin payments from their customers' Bitcoin Lightning wallets to their own Bitcoin Lightning wallets.
+Coinsnap is **Bitcoin payment software for merchants** and a brand of **Onlineshop24 d.o.o., Serbia**.
 
-Our **Coinsnap for Modified Shop plugin** allows you to accept Bitcoin Lightning payments in the web shop created on Modified Shop Software platform. You can now accept payments in Bitcoin and Lightning on your website. 
+## Key features
 
-With the Coinsnap Bitcoin Lightning payment plugin for Modified Shop you only need your email and a Lightning wallet (with a Lightning address) to accept Bitcoin Lightning payments in your Modified Shop!
+- Accept **Bitcoin and Lightning payments** in Modified Shop
+- Support for **Lightning and Bitcoin on-chain**
+- Integrated into the Modified Shop checkout and order workflow
+- Payment status handling in the shop backend
+- No own Lightning node or Bitcoin payment server required
+- **Non-custodial / self-custody** approach
+- Settlement to a compatible Bitcoin or Lightning wallet
+- Installation via FTP without modifying the Modified Shop core
+- Open source under the GPL-3.0 License
 
-More information:
+## Requirements
 
-* Modified Shop Coinsnap Demo Site: [https://modified-shop.coinsnap.org/](https://modified-shop.coinsnap.org/)
-* Blog Article: [https://coinsnap.io/coinsnap-for-modified-shop/](https://coinsnap.io/coinsnap-for-modified-shop/)
-* GitHub: [https://github.com/Coinsnap/Coinsnap-for-Modified](https://github.com/Coinsnap/Coinsnap-for-Modified)
+The current repository release is **1.0.0**.
 
-# Enable Bitcoin Lightning payments in Modified Shop with Coinsnap #
+The module requires:
 
-With Modified you can create your store in just a few minutes. Modified is the easiest and fastest way to create your own store. With this store software you can manage everything: Products, orders, customers, payments and more.
+- A **Modified Shop installation** with administrator access
+- **PHP 8.0 or newer**
+- FTP access to the shop server
+- A **Coinsnap merchant account**
 
-With the Coinsnap for Modified plugin you can immediately accept Bitcoin Lightning payments on your site. You don’t need your own Lightning node or any other technical requirements.
+For Bitcoin settlement, you can use a compatible Bitcoin or Lightning wallet. One option is the [Coinsnap Wallet](https://coinsnap.io/wallet/), which combines a self-custodial Bitcoin wallet with merchant and point-of-sale functionality.
 
-Simply register with your email on [Coinsnap](https://app.coinsnap.io/register), enter your own Lightning address and install the Coinsnap plugin in your Modified Shop backend. Add your store ID and your API key (which you’ll find in your Coinsnap account), and your customers can pay you with Bitcoin Lightning right away!
+## How it works
 
-# Features: #
+1. Create a [Coinsnap merchant account](https://app.coinsnap.io/register).
+2. Download the Coinsnap for Modified Shop module from this repository.
+3. Upload the module files to the root directory of your Modified Shop installation via FTP.
+4. Install Coinsnap under **Modules → Payment Methods**.
+5. Enter your Coinsnap **Store ID** and **API key**.
+6. Configure the payment status mapping and available payment zones.
+7. Enable the payment method and perform a test transaction.
 
-* **All you need is your email and a Lightning Wallet with a Lightning address. [Here you can find an overview of suitable Lightning Wallets](https://coinsnap.io/en/lightning-wallet-with-lightning-address/)**
+## Installation
 
-* **Accept Bitcoin and Lightning payments** in your online store **without running your own technical infrastructure.** You do not need your own server, nor do you need to run your own Lightning Node. You also do not need a shop-system, for you can sell right out of your forms using the Coinsnap for Content Form 7-plugin.
+### 1. Download the module
 
-* **Quick and easy registration at Coinsnap**: Just enter your email address and your Lightning address – and you are ready to integrate the payment module and start selling for Bitcoin Lightning. You will find the necessary IDs and Keys in your Coinsnap account, too.
+Download the current version from this GitHub repository and extract the archive locally.
 
-* **100% protected privacy**:
-    * We do not collect personal data.
-    * For the registration you only need an e-mail address, which we will also use to inform you when you have received a payment.
-    * No other personal information is required as long as you request a withdrawal to a Lightning address or Bitcoin address.
+### 2. Upload the module files
 
-* **Only 1 % fees!**:
-    * No basic fee, no transaction fee, only 1% on the invoice amount with referrer code.
-    * Without referrer code the fee is 1.25%.
-    * Get a referrer code from our [partners](https://coinsnap.io/en/partner/) and customers and save 0.25% fee.
+Upload the contents of the `shoproot` directory to the root directory of your Modified Shop installation while preserving the directory structure.
 
-* **No KYC needed**:
-    * Direct, P2P payments (instantly to your Lightning wallet)
-    * No intermediaries and paperwork
-    * Transaction information is only shared between you and your customer
+The package contains the relevant files for:
 
-* **Sophisticated merchant’s admin dashboard in Coinsnap:**:
-    * See all your transactions at a glance
-    * Follow-up on individual payments
-    * See issues with payments
-    * Export reports
+- `callback`
+- `includes`
+- `lang`
 
-* **A Bitcoin payment via Lightning offers significant advantages**:
-    * Lightning **payments are executed immediately.**
-    * Lightning **payments are credited directly to the recipient.**
-    * Lightning **payments are inexpensive.**
-    * Lightning **payments are guaranteed.** No chargeback risk for the merchant.
-    * Lightning **payments can be used worldwide.**
-    * Lightning **payments are perfect for micropayments.**
+### 3. Install the payment module
 
-* **Multilingual interface and support**: We speak your language
+In the Modified Shop administration:
 
+1. Go to **Modules → Payment Methods**.
+2. Find **Coinsnap**.
+3. Click **Install**.
+4. Coinsnap will then appear in the list of installed payment modules.
 
-# Documentation: #
+### 4. Configure Coinsnap
 
-* [Coinsnap API (1.0) documentation](https://docs.coinsnap.io/)
-* [Frequently Asked Questions](https://coinsnap.io/en/faq/) 
-* [Terms and Conditions](https://coinsnap.io/en/general-terms-and-conditions/)
-* [Privacy Policy](https://coinsnap.io/en/privacy/)
+Open the Coinsnap payment settings and:
 
+1. Enable the Coinsnap module.
+2. Enter your **Coinsnap Store ID**.
+3. Enter your **Coinsnap API key**.
+4. Configure the desired order/payment statuses.
+5. Configure permitted payment zones if required.
+6. Save the settings.
 
-# Installation #
+Your Store ID and API key are available in your Coinsnap merchant account.
 
-### 1. Install the Coinsnap for Modified Shop ###
+## Resources
 
-Download the Coinsnap for Modified Shop plugin from the Coinsnap Github page.
+- [Coinsnap for Modified Shop product page](https://coinsnap.io/shop-systems/modified-shop/)
+- [Coinsnap Modified Shop user guide](https://www.coinsnap.io/user-guides/modified-shop-bitcoin-user-guide/)
+- [Coinsnap Modified Shop demo store](https://modified-shop.coinsnap.org/)
+- [Coinsnap Wallet](https://coinsnap.io/wallet/)
+- [Coinsnap API documentation](https://docs.coinsnap.io/)
+- [Coinsnap merchant account](https://app.coinsnap.io/register)
+- [Coinsnap website](https://coinsnap.io/)
+- [Telegram community and support](https://t.me/coinsnap)
 
-Extract files and folders from archive and upload to Modified shop root using FTP-client and keeping all the directory structure:
+> **Brand note:** Coinsnap is Bitcoin payment software for merchants and is not the provider of the similarly named coin identifier app "CoinSnap".
 
-- callback
-- includes
-- lang
+## Frequently Asked Questions
 
-Login to Modified Shop as admin
+### What do I need to accept Bitcoin in Modified Shop?
 
-Click on Admin Area button to enter in Admin Control Panel
+You need a Modified Shop installation with administrator access, PHP 8.0 or newer, FTP access to the shop server and a Coinsnap merchant account.
 
-![Navigate to Modules > Payment Methods](https://resources.coinsnap.org/products/modified/images/screenshot1.png)
+### Can customers pay with both Lightning and Bitcoin on-chain?
 
-Navigate to Modules > Payment Methods, find there Coinsnap and click install - after installation Coinsnap will appear among **Modules installed** list
+Yes. Coinsnap supports Bitcoin payments via both the Lightning Network and Bitcoin on-chain.
 
-Now you can proceed with the set-up of your Coinsnap plugin, just as described below.
+### Which Bitcoin or Lightning wallets can I use?
 
+You can use a compatible Bitcoin or Lightning wallet for settlement. One option is the [Coinsnap Wallet](https://coinsnap.io/wallet/).
 
-### 2. Configure the Coinsnap for Modified plugin ###
+Other compatible wallets may include solutions such as Wallet of Satoshi, Blink and Zeus, depending on the settlement setup you choose.
 
-After the Coinsnap for Modified Shop plugin is installed and activated, the plugin still needs to be configured.
+### Does Coinsnap hold my Bitcoin?
 
-To do this, you need a Coinsnap account first.
+Coinsnap follows a non-custodial approach and does not hold merchant Bitcoin. Payments are settled to the merchant's configured wallet or payment destination.
 
-### 2.1 Create your Coinsnap account ###
+### Do I need to modify the Modified Shop core?
 
-Open your Coinsnap account at https://app.coinsnap.io/register by simply entering your email address and a password of your choice.
+No. The module is installed by uploading its files into the existing Modified Shop directory structure and enabling it as a payment module.
 
-![Coinsnap App](https://resources.coinsnap.org/products/modified/images/screenshot5.png)
+### Do I need my own Lightning node?
 
-If you are using a Lightning Wallet with Lightning Login, then you can also open a Coinsnap account with it.
+No. When using Coinsnap, no own Lightning node or Bitcoin payment server is required.
 
-### 2.2. Confirm your email address ###
+### Where do I find my Store ID and API key?
 
-You will receive an email to the submitted email address with a confirmation link, which you have to confirm. If you do not find the email, please check your spam folder.
+They are available in your Coinsnap merchant account and are entered in the Modified Shop Coinsnap payment configuration.
 
-![Confirm your email address](https://resources.coinsnap.org/products/modified/images/screenshot6.png)
+### Is the module open source?
 
-Then, please log in to the Coinsnap backend with the appropriate credentials.
+Yes. The source code is available in this repository under the GPL-3.0 License.
 
-### 2.3. Connect your website with Coinsnap ###
+### Where can I get support?
 
-After you signed up, you will be asked to provide two pieces of information:
+Use the support area in your Coinsnap merchant account or join the official [Coinsnap Telegram channel](https://t.me/coinsnap).
 
-![Connect your website with Coinsnap](https://resources.coinsnap.org/products/modified/images/screenshot7.png)
+## Changelog
 
-In the “Website Name” field, enter the name of your site or online store that you want customers to see when they check out.
+### 1.0.0
 
-In the “Lightning Address” field, enter the Lightning address to which your Bitcoin Lightning transactions should be forwarded. A Lightning address is similar to an e-mail address, it looks like [tabletree48@mylightningwallet.io](tabletree48@mylightningwallet.io). Lightning payments are forwarded and credited to this Lightning address. 
-
-If you don’t have a Lightning address yet, set up a Lightning wallet that will provide you with a Lightning address.
-
-
-For more information on Lightning addresses and Lightning wallet providers, click here: [https://coinsnap.io/en/how-do-i-get-a-lightning-wallet/](https://coinsnap.io/en/how-do-i-get-a-lightning-wallet/).
-
-### 3. Connect the Coinsnap for Modified Shop with your Coinsnap account ###
-
-To make it all work, you need to connect your plugin with your Coinsnap account. Here is how you do that:
-
-### 3.1. Coinsnap for Modified Shop Settings ###
-
-![Coinsnap for Modified Shop Settings](https://resources.coinsnap.org/products/modified/images/screenshot2.png)
-
-* Modules > Payment Methods, find there Coinsnap and press on the raw - the page with Coinsnap settings will open.
-* Enable Coinsnap Module (click "Yes").
-* Enter the “Coinsnap Store ID”, and your “Coinsnap API Key” (you will find those in your Coinsnap account). 
-* Choose payment status for Coinsnap payment statuses.
-* If you need, you can write allowed payment zones and choose payment zone from payment zones list.
-* Click “Save”
-
-
-### 4. Test payment ###
-
-### 4.1. Test payment in Modified Shop ###
-
-If you want to see how Bitcoin Lightning payment works in a Modified Shop, just go to our [demo store](https://modified-shop.coinsnap.org/) and make a test order. 
-
-![Test payment in Modified Shop](https://resources.coinsnap.org/products/modified/images/screenshot3.png)
-
-On checlout after you'll enter all the cliend's data you will see the Bitcoin Lightning payment page:
-
-![Bitcoin Lightning payment page](https://resources.coinsnap.org/products/modified/images/screenshot4.png)
-
-### 4.2. Bitcoin Lightning payment page ###
-
-This payment page shows your customer the amount payable in SATS. Click on “view Details” for further information. 
-
-Then you see the QR code. Hold your wallet above it and the amount of SATS displayed above will be transferred from your wallet to the Coinsnap wallet as soon as you click the button “pay”.
+- Initial public release.
