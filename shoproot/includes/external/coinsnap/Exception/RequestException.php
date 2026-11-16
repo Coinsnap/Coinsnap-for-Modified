@@ -14,7 +14,8 @@ class RequestException extends CoinsnapException
     public function __construct(string $method, string $url, ResponseInterface $response)
     {
         $this->responseBody = $response->getBody();
-        $message = 'Error during ' . $method . ' to ' . $url . '. Got response (' . $response->getStatus() . ').';
+        // Host only: the path holds store and invoice IDs.
+        $message = 'Error during ' . $method . ' to ' . (parse_url($url, PHP_URL_HOST) ?: 'the payment server') . '. Got response (' . $response->getStatus() . ').';
         parent::__construct($message, $response->getStatus());
     }
 
