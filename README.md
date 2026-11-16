@@ -138,6 +138,15 @@ Use the support area in your Coinsnap merchant account or join the official [Coi
 
 ## Changelog
 
+### 1.0.1
+
+- Security: Webhooks are verified with the timestamped `X-Coinsnap-Signature` header against the webhook secret, which the module now stores. Before, the callback accepted any request. The first checkout after the update registers a new webhook and removes the old one.
+- Security: An order changes only for an invoice this module created for it, and is marked paid only when the invoice is settled for the amount and currency the module asked for, once. Before, any invoice in the same Coinsnap store with a matching order ID could change an order's status.
+- Security: Paid, shipped or cancelled orders are no longer changed by a webhook, including a late "Expired" when the paid and processing statuses are the same.
+- Security: Checkout no longer prints API error details when the webhook cannot be registered.
+- Fix: Every error reply from the Coinsnap API ended in a fatal "class not found" error, because the library loader could not load `CoinsnapException`.
+- Fix: A failed invoice creation shows an error instead of crashing, and a payment server outage no longer registers duplicate webhooks.
+
 ### 1.0.0
 
 - Initial public release.

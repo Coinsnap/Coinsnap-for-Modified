@@ -1,5 +1,6 @@
 <?php
   require_once(DIR_FS_EXTERNAL.'/coinsnap/autoload.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap_module/Store.php');
   
   class coinsnap {
   
@@ -19,7 +20,7 @@
     function __construct(){
         global $order;
 
-        $this->signature = 'coinsnap|1.0.0|2.2';
+        $this->signature = 'coinsnap|1.0.1|2.2';
         $this->code = 'coinsnap';
         $this->title = MODULE_PAYMENT_COINSNAP_TEXT_TITLE;
         $this->description = MODULE_PAYMENT_COINSNAP_TEXT_DESCRIPTION;
@@ -113,12 +114,10 @@
       $WebhookUrl = $this->getWebhookUrl();        
       
       
-     if (! $this->webhookExists($this->StoreId, $this->ApiKey, $WebhookUrl)){
-         if (! $this->registerWebhook($this->StoreId, $this->ApiKey,$WebhookUrl)) {                
-             echo 'unable to set Webhook url.';
-             exit;
-         }
-      }  
+      if (!$this->ensureWebhook($WebhookUrl)) {
+          echo 'The payment could not be started. Please try again later.';
+          exit;
+      }
   
 
       $buyerName =  $order->billing['firstname'].' '.$order->billing['lastname'];
@@ -133,27 +132,31 @@
   		$checkoutOptions->setRedirectURL( $redirectUrl );
 	  	$client = new \Coinsnap\Client\Invoice( $this->ApiUrl, $this->ApiKey );			
 		  $camount = \Coinsnap\Util\PreciseNumber::parseFloat($amount,2);
-		  $invoice = $client->createInvoice(
-			  $this->StoreId,  
-			  $currencyCode,
-			  $camount,
-			  $OrderId,
-			  $buyerEmail,
-			  $buyerName, 
-			  $redirectUrl,
-			  $this->referralCode,     
-			  $metadata,
-			  $checkoutOptions
-		  );
-		
-		  $payurl = $invoice->getData()['checkoutLink'] ;
-      if (!empty($payurl)){				
-        xtc_redirect($payurl);        
+      try {
+        $invoiceData = $client->createInvoice(
+          $this->StoreId,
+          $currencyCode,
+          $camount,
+          $OrderId,
+          $buyerEmail,
+          $buyerName,
+          $redirectUrl,
+          $this->referralCode,
+          $metadata,
+          $checkoutOptions
+        )->getData();
+      } catch (\Throwable $e) {
+        error_log('Coinsnap: invoice creation failed for order ' . (int) $OrderId . ' (status ' . (int) $e->getCode() . ')');
+        $invoiceData = [];
       }
-      else {
-        echo "API Error";      		
+
+      if (empty($invoiceData['checkoutLink']) || empty($invoiceData['id'])) {
+        echo 'The payment could not be started. Please try again later.';
         exit;
-      }  
+      }
+      // Only this invoice, for this amount and currency, can pay the order.
+      (new \CoinsnapModified\Store())->rememberInvoice((string) $invoiceData['id'], (int) $OrderId, $camount->__toString(), (string) $currencyCode);
+      xtc_redirect($invoiceData['checkoutLink']);  
   
     }
 
@@ -208,42 +211,54 @@
         return xtc_href_link('callback/coinsnap/coinsnap_callback.php');
     }    
 
-    function webhookExists(string $storeId, string $apiKey, string $webhook): bool {	
-      try {		
-        
-        $whClient = new \Coinsnap\Client\Webhook( $this->ApiUrl, $apiKey );	        
-				$Webhooks = $whClient->getWebhooks( $storeId );
-        
-        foreach ($Webhooks as $Webhook){					
-          //$this->deleteWebhook($storeId,$apiKey, $Webhook->getData()['id']);
-          if ($Webhook->getData()['url'] == $webhook) return true;	
+    // True when a webhook with a stored secret is in place, registering one if it is missing.
+    function ensureWebhook(string $webhookUrl): bool {
+      $store = new \CoinsnapModified\Store();
+      $client = new \Coinsnap\Client\Webhook($this->ApiUrl, $this->ApiKey);
+      $stored = $store->webhook();
+      if ($stored !== null) {
+        try {
+          $existing = $client->getWebhook($this->StoreId, (string) $stored['webhook_id']);
+          if (($existing->getData()['url'] ?? '') === $webhookUrl) {
+            return true;
+          }
+        } catch (\Coinsnap\Exception\RequestException $e) {
+          // An API error is not "no webhook": registering now would replace a working secret.
+          if (!in_array($e->getCode(), [400, 404], true)) {
+            return true;
+          }
+        } catch (\Throwable $e) {
+          return true;
         }
-      }catch (\Throwable $e) {			        
+      }
+      return $this->registerWebhook($store, $client, $webhookUrl);
+    }
+
+    function registerWebhook(\CoinsnapModified\Store $store, \Coinsnap\Client\Webhook $client, string $webhookUrl): bool {
+      try {
+        $webhook = $client->createWebhook($this->StoreId, $webhookUrl, self::WEBHOOK_EVENTS, null)->getData();
+      } catch (\Throwable $e) {
+        error_log('Coinsnap: webhook could not be registered (status ' . (int) $e->getCode() . ')');
         return false;
       }
-    
-      return false;
-    }
-    function registerWebhook(string $storeId, string $apiKey, string $webhook): bool {	
-      try {			
-        $whClient = new \Coinsnap\Client\Webhook($this->ApiUrl, $apiKey);
-        
-        $webhook = $whClient->createWebhook(
-          $storeId,   //$storeId
-          $webhook, //$url
-          self::WEBHOOK_EVENTS,   //$specificEvents
-          null    //$secret
-        );					
-        
-        return true;
-      } catch (\Throwable $e) {
-        echo "err".$e->getMessage();        
-        return false;	
+      if (empty($webhook['id']) || empty($webhook['secret'])) {
+        return false;
       }
-  
-      return false;
+      $store->saveWebhook((string) $webhook['id'], (string) $webhook['secret']);
+
+      // Version 1.0.0 never stored its webhook's secret; remove those webhooks so only this one delivers.
+      try {
+        foreach ($client->getWebhooks($this->StoreId) as $other) {
+          if (($other->getData()['url'] ?? '') === $webhookUrl && ($other->getData()['id'] ?? '') !== $webhook['id']) {
+            $client->deleteWebhook($this->StoreId, (string) $other->getData()['id']);
+          }
+        }
+      } catch (\Throwable $e) {
+        error_log('Coinsnap: older webhooks could not be removed');
+      }
+      return true;
     }
-  
+
     function deleteWebhook(string $storeId, string $apiKey, string $webhookid): bool {	    
       
       try {			

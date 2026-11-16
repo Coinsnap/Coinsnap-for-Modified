@@ -1,60 +1,41 @@
 <?php
 
-
 chdir('../../');
 require_once('includes/application_top.php');
 
-// include needed classes
-require_once(DIR_WS_CLASSES.'order.php');
 require_once(DIR_FS_EXTERNAL.'coinsnap/autoload.php');
-if (!defined('COINSNAP_SERVER_PATH'))	define( 'COINSNAP_SERVER_PATH', 'stores' );  
+require_once(DIR_FS_EXTERNAL.'coinsnap_module/Signature.php');
+require_once(DIR_FS_EXTERNAL.'coinsnap_module/InvoiceDecision.php');
+require_once(DIR_FS_EXTERNAL.'coinsnap_module/Store.php');
+require_once(DIR_FS_EXTERNAL.'coinsnap_module/Orders.php');
+require_once(DIR_FS_EXTERNAL.'coinsnap_module/WebhookProcessor.php');
+if (!defined('COINSNAP_SERVER_PATH')) define('COINSNAP_SERVER_PATH', 'stores');
 
-$notify_json = file_get_contents('php://input');  
-  
-if (empty($notify_json)) {
-  echo "Data Missing";
-  exit;
-}
-$notify_ar = json_decode($notify_json, true);
-$invoiceId = $notify_ar['invoiceId'];
-if (empty($invoiceId)) {
-  echo "Invoice id Missing";
-  exit;
-}
-$ApiUrl = 'https://app.coinsnap.io';
-$StoreId = defined('MODULE_PAYMENT_COINSNAP_STORE_ID')?MODULE_PAYMENT_COINSNAP_STORE_ID:'';
-$ApiKey = defined('MODULE_PAYMENT_COINSNAP_API_KEY')?MODULE_PAYMENT_COINSNAP_API_KEY:'';
+$storeId = defined('MODULE_PAYMENT_COINSNAP_STORE_ID') ? MODULE_PAYMENT_COINSNAP_STORE_ID : '';
+$apiKey = defined('MODULE_PAYMENT_COINSNAP_API_KEY') ? MODULE_PAYMENT_COINSNAP_API_KEY : '';
 
-try {
-  $client = new \Coinsnap\Client\Invoice( $ApiUrl, $ApiKey );			
-  $csinvoice = $client->getInvoice($StoreId, $invoiceId);
-  $status = $csinvoice->getData()['status'] ;
-  $orderId = $csinvoice->getData()['orderId'] ;				
+$processor = new \CoinsnapModified\WebhookProcessor(
+    new \CoinsnapModified\Store(),
+    new \CoinsnapModified\Orders(),
+    static function (string $invoiceId) use ($storeId, $apiKey): array {
+        return (new \Coinsnap\Client\Invoice('https://app.coinsnap.io', $apiKey))->getInvoice($storeId, $invoiceId)->getData();
+    },
+    static function (string $line): void {
+        error_log($line);
+    },
+    [
+        'default' => defined('DEFAULT_ORDERS_STATUS_ID') ? DEFAULT_ORDERS_STATUS_ID : 1,
+        'processing' => MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID,
+        'settled' => MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID,
+        'expired' => MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID,
+    ]
+);
 
-}catch (\Throwable $e) {													
-    echo "Error";
-    exit;
-}
-if (empty($orderId)) {
-  echo "order Id Missing";
-  exit;
-}
-
-$statusId = 0;
-if ($status == 'Expired') $statusId = MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID;
-else if ($status == 'Processing') $statusId = MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID;
-else if ($status == 'Settled') $statusId = MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID;	
-if ($statusId != 0){  
-  $comments = '';
-  xtc_db_query("UPDATE ".TABLE_ORDERS." SET orders_status = '".$statusId."' WHERE orders_id = '".(int) $orderId."'");
-  $sql_data_array = array('orders_id' => (int) $orderId,
-                          'orders_status_id' => $statusId,
-                          'date_added' => 'now()',
-                          'customer_notified' => '0',
-                          'comments' => decode_htmlentities($comments),
-                          'comments_sent' => '0'
-                          );
-    xtc_db_perform(TABLE_ORDERS_STATUS_HISTORY, $sql_data_array);  
-}
-echo "OK";
-  
+// Only the invoice id is taken from the request; the invoice's state comes from the Coinsnap API.
+$status = $processor->handle(
+    (string) file_get_contents('php://input'),
+    (string) ($_SERVER['HTTP_X_COINSNAP_SIGNATURE'] ?? ''),
+    time()
+);
+http_response_code($status);
+echo $status === 200 ? 'OK' : ($status === 401 ? 'Unauthorized' : 'Retry');
