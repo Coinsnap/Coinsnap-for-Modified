@@ -73,9 +73,7 @@ class Invoice extends AbstractClient{
                 json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)
             );
         } else {
-            print_r($response);
-            exit;
-            //throw $this->getExceptionByStatusCode($method, $url, $response);
+            throw $this->getExceptionByStatusCode($method, $url, $response);
         }
     }
 
