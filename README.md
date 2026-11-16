@@ -139,6 +139,7 @@ Use the support area in your Coinsnap merchant account or join the official [Coi
 ## Changelog
 
 ### 1.0.1
+* Security: The API key is no longer shown in the admin (edit form or module overview); leave the field empty to keep the stored key.
 
 - Security: Webhooks are verified with the timestamped `X-Coinsnap-Signature` header against the webhook secret, which the module now stores. Before, the callback accepted any request. The first checkout after the update registers a new webhook and removes the old one.
 - Security: An order changes only for an invoice this module created for it, and is marked paid only when the invoice is settled for the amount and currency the module asked for, once. Before, any invoice in the same Coinsnap store with a matching order ID could change an order's status.

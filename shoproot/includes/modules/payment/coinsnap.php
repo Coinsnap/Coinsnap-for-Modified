@@ -1,6 +1,21 @@
 <?php
   require_once(DIR_FS_EXTERNAL.'/coinsnap/autoload.php');
   require_once(DIR_FS_EXTERNAL.'/coinsnap_module/Store.php');
+
+  if (!function_exists('coinsnap_cfg_api_key')) {
+    // Admin edit field: empty, with a hint; the stored key never reaches the browser.
+    function coinsnap_cfg_api_key($value, $key) {
+      $hint = ($value !== '') ? 'A key ending in ' . htmlspecialchars(substr(html_entity_decode((string) $value, ENT_QUOTES), -4), ENT_QUOTES) . ' is saved. Leave empty to keep it.' : '';
+      return '<input type="password" name="configuration[' . htmlspecialchars((string) $key, ENT_QUOTES) . ']" value="" autocomplete="new-password" class="inputModule" />'
+        . ($hint !== '' ? '<br /><small>' . $hint . '</small>' : '');
+    }
+  }
+  if (!function_exists('coinsnap_cfg_api_key_hint')) {
+    // Admin module overview: only the last characters of the key.
+    function coinsnap_cfg_api_key_hint($value) {
+      return ((string) $value === '') ? '' : '&hellip;' . htmlspecialchars(substr((string) $value, -4), ENT_QUOTES);
+    }
+  }
   
   class coinsnap {
   
@@ -37,6 +52,24 @@
       
         if (!defined('COINSNAP_SERVER_PATH')){
             define( 'COINSNAP_SERVER_PATH', 'stores' );  
+        }
+
+        if (defined('RUN_MODE_ADMIN')) {
+            $this->keepStoredApiKey();
+        }
+    }
+
+    // The module is created before admin/modules.php reads the posted settings: an empty key field keeps the stored key.
+    private function keepStoredApiKey() {
+        if (($_GET['action'] ?? '') === 'save' && ($_GET['module'] ?? '') === $this->code
+            && isset($_POST['configuration']) && is_array($_POST['configuration'])
+            && array_key_exists('MODULE_PAYMENT_COINSNAP_API_KEY', $_POST['configuration'])
+            && trim((string) $_POST['configuration']['MODULE_PAYMENT_COINSNAP_API_KEY']) === '') {
+            unset($_POST['configuration']['MODULE_PAYMENT_COINSNAP_API_KEY']);
+        }
+        // Installs from before 1.0.1 render the key as a plain text field.
+        if ($this->check()) {
+            xtc_db_query("update " . TABLE_CONFIGURATION . " set set_function = 'coinsnap_cfg_api_key(', use_function = 'coinsnap_cfg_api_key_hint' where configuration_key = 'MODULE_PAYMENT_COINSNAP_API_KEY' and (set_function is null or set_function = '')");
         }
     }
 
@@ -180,7 +213,7 @@
 
       xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STATUS', 'True', '6', '0', 'xtc_cfg_select_option(array(\'True\', \'False\'), ', now())");      
       xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_STORE_ID', '', '6', '0', now())");
-      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, date_added) values ('MODULE_PAYMENT_COINSNAP_API_KEY', '', '6', '0', now())");
+      xtc_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_API_KEY', '', '6', '0', 'coinsnap_cfg_api_key(', 'coinsnap_cfg_api_key_hint', now())");
       xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID', '".$DefaultExpId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");
       xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID', '".$DefaultStlId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");      
       xtc_db_query("insert into " . TABLE_CONFIGURATION.  " (configuration_key, configuration_value, configuration_group_id, sort_order, set_function, use_function, date_added) values ('MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID', '".$DefaultPrsId."', '6', '0', 'xtc_cfg_pull_down_order_statuses(', 'xtc_get_order_status_name', now())");            
