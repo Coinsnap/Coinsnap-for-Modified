@@ -7,17 +7,19 @@ namespace CoinsnapModified;
 // The few order facts the webhook needs, read from Modified's own tables.
 class Orders
 {
-    // Payment method, current status and the total in the order's currency, or null when there is no such order.
+    // Payment method, current status, purchase time and the total in the order's currency, or null when there is no such order.
     public function find(int $orderId): ?array
     {
-        $order = xtc_db_fetch_array(xtc_db_query("SELECT `orders_id`, `payment_method`, `orders_status`, `currency`, `currency_value` FROM "
+        $order = xtc_db_fetch_array(xtc_db_query("SELECT `orders_id`, `customers_id`, `payment_method`, `orders_status`, `currency`, `currency_value`, UNIX_TIMESTAMP(`date_purchased`) AS `purchased_at` FROM "
             . TABLE_ORDERS . " WHERE `orders_id` = " . (int) $orderId));
         if (!is_array($order) || $order === []) {
             return null;
         }
         $total = xtc_db_fetch_array(xtc_db_query("SELECT `value` FROM " . TABLE_ORDERS_TOTAL . " WHERE `orders_id` = " . (int) $orderId
             . " AND `class` = 'ot_total' LIMIT 1"));
-        $order['total'] = (float) ($total['value'] ?? 0) * (float) ($order['currency_value'] ?: 1);
+        // ot_total is stored in the order's currency (it is what the customer saw; PayPal sends it with `currency` as well),
+        // so it is not multiplied by `currency_value` again (guide 6.2).
+        $order['total'] = (float) ($total['value'] ?? 0);
         return $order;
     }
 

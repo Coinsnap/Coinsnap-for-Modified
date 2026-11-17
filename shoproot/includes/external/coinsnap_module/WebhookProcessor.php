@@ -15,12 +15,14 @@ class WebhookProcessor
     private $log;
 
     // $statuses: default (new order), processing, settled and expired order status ids.
+    // $storeId: the configured Coinsnap store; its webhook secret is the only one accepted (guide 6.4).
     public function __construct(
         private Store $store,
         private Orders $orders,
         callable $fetchInvoice,
         callable $log,
-        private array $statuses
+        private array $statuses,
+        private string $storeId = ''
     ) {
         $this->fetchInvoice = $fetchInvoice;
         $this->log = $log;
@@ -28,7 +30,8 @@ class WebhookProcessor
 
     public function handle(string $rawBody, string $signature, int $now): int
     {
-        $problem = Signature::coinsnapProblem($signature, $rawBody, (string) ($this->store->webhook()['secret'] ?? ''), $now);
+        $webhook = $this->store->webhook($this->storeId) ?? $this->store->legacyWebhook();
+        $problem = Signature::coinsnapProblem($signature, $rawBody, (string) ($webhook['secret'] ?? ''), $now);
         if ($problem !== null) {
             $this->logSecurity($problem);
             return 401;
@@ -64,12 +67,14 @@ class WebhookProcessor
         }
 
         $expected = $this->store->findInvoice($invoiceId, $orderId);
-        if ($expected === null && $this->store->orderHasInvoices($orderId)) {
-            $this->logSecurity('invoice not created for this order', $invoiceId);
-            return 200;
+        if ($expected === null) {
+            if ($this->store->orderHasInvoices($orderId) || !$this->isLegacyOrder($order, $now)) {
+                $this->logSecurity('invoice not created for this order', $invoiceId);
+                return 200;
+            }
+            // Orders placed before invoices were recorded: checked against the order total, for one day after the upgrade only (guide 6.7).
+            $expected = ['amount' => number_format(round((float) $order['total'], 2), 2, '.', ''), 'currency' => (string) $order['currency']];
         }
-        // Orders placed before 1.0.1 have no record; check against the order total.
-        $expected ??= ['amount' => number_format(round((float) $order['total'], 2), 2, '.', ''), 'currency' => (string) $order['currency']];
 
         $decision = InvoiceDecision::decide($invoice, false, (string) $expected['amount'], (string) $expected['currency']);
         if ($decision !== InvoiceDecision::PAID && ($claimsPaid || $decision === InvoiceDecision::MISMATCH)) {
@@ -81,39 +86,70 @@ class WebhookProcessor
         return 200;
     }
 
-    // Moves an order forward only: paid orders, and orders past the awaiting statuses, never change.
+    // Moves an order forward only. A paid order never changes; a status the merchant set by hand is kept,
+    // except that a real (late) payment may still settle an expired order (guide 6.8).
     private function apply(string $decision, int $orderId, int $current, string $invoiceId, array $expected): void
     {
-        $default = (int) $this->statuses['default'];
         $processing = (int) $this->statuses['processing'];
         $expired = (int) $this->statuses['expired'];
-        $awaiting = in_array($current, [$default, $processing], true) && !$this->store->orderIsPaid($orderId);
+        $settled = (int) $this->statuses['settled'];
+        $paid = $this->store->orderIsPaid($orderId);
+        $untouched = $this->setByModule($orderId, $current);
 
         if ($decision === InvoiceDecision::PAID) {
-            // A late payment can still settle an order that expired.
-            if (!$awaiting && $current !== $expired) {
-                $this->logInfo('no change from status ' . $current, $invoiceId);
+            if ($paid || (!$untouched && $current !== $expired)) {
+                $this->logInfo($paid ? 'already paid' : 'no change from status ' . $current, $invoiceId);
                 return;
             }
             if (!$this->store->claimPaid($invoiceId, $orderId, (string) $expected['amount'], (string) $expected['currency'])) {
                 $this->logInfo('already processed', $invoiceId);
                 return;
             }
-            $this->orders->setStatus($orderId, (int) $this->statuses['settled'], 'Coinsnap invoice ' . $invoiceId . ' settled.');
+            $this->setStatus($orderId, $settled, 'Coinsnap invoice ' . $invoiceId . ' settled.');
             $this->logInfo('paid', $invoiceId);
             return;
         }
-        if ($decision === InvoiceDecision::PROCESSING && $awaiting && $current === $default && $default !== $processing) {
-            $this->orders->setStatus($orderId, $processing, 'Coinsnap invoice ' . $invoiceId . ': payment received, waiting for confirmation.');
+        if ($paid || !$untouched) {
+            $this->logInfo('no change', $invoiceId);
+            return;
+        }
+        // When "processing" is the same status as "settled" (the install default), an unconfirmed payment would look paid.
+        if ($decision === InvoiceDecision::PROCESSING && $processing !== $settled && $current !== $processing && $current !== $expired) {
+            $this->setStatus($orderId, $processing, 'Coinsnap invoice ' . $invoiceId . ': payment received, waiting for confirmation.');
             $this->logInfo('status processing', $invoiceId);
             return;
         }
-        if ($decision === InvoiceDecision::EXPIRED && $awaiting) {
-            $this->orders->setStatus($orderId, $expired, 'Coinsnap invoice ' . $invoiceId . ' expired.');
+        if ($decision === InvoiceDecision::EXPIRED && $current !== $expired) {
+            $this->setStatus($orderId, $expired, 'Coinsnap invoice ' . $invoiceId . ' expired.');
             $this->logInfo('status expired', $invoiceId);
             return;
         }
         $this->logInfo('no change', $invoiceId);
+    }
+
+    // True while the order still has the status this module gave it. Orders from before that record existed
+    // count as untouched only in the new or processing status.
+    private function setByModule(int $orderId, int $current): bool
+    {
+        $recorded = $this->store->moduleStatus($orderId);
+        if ($recorded !== null) {
+            return $recorded === $current;
+        }
+        return in_array($current, [(int) $this->statuses['default'], (int) $this->statuses['processing']], true);
+    }
+
+    private function setStatus(int $orderId, int $statusId, string $comment): void
+    {
+        $this->orders->setStatus($orderId, $statusId, $comment);
+        $this->store->rememberStatus($orderId, $statusId);
+    }
+
+    // No invoice record: accepted only for an order placed before records began, and only within the window.
+    private function isLegacyOrder(array $order, int $now): bool
+    {
+        $since = $this->store->recordsSince();
+        $placed = (int) ($order['purchased_at'] ?? 0);
+        return $since > 0 && $placed > 0 && $placed < $since && $now < $since + Store::LEGACY_WINDOW_SECONDS;
     }
 
     private function logInfo(string $reason, string $invoiceId = ''): void

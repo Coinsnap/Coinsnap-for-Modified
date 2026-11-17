@@ -101,7 +101,7 @@ class Invoice extends AbstractClient{
         return $this->_getAllInvoicesWithFilter($storeId, $orderIds);
     }
 
-    private function _getAllInvoicesWithFilter(string $storeId,array $filterByOrderIds = null): \Coinsnap\Result\InvoiceList {
+    private function _getAllInvoicesWithFilter(string $storeId,?array $filterByOrderIds = null): \Coinsnap\Result\InvoiceList {
         $url = $this->getApiUrl().''.COINSNAP_SERVER_PATH.'/'.urlencode($storeId).'/invoices?';
         if ($filterByOrderIds !== null) {
             foreach ($filterByOrderIds as $filterByOrderId) {

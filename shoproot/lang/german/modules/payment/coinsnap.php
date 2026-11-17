@@ -28,6 +28,10 @@
   define('MODULE_PAYMENT_COINSNAP_TEXT_UNSUCCESSFUL_TRANSACTION', 'Klicken Sie hier um zu %s fortzufahren');
   define('MODULE_PAYMENT_COINSNAP_TEXT_CONTINUE_BUTTON', 'Click here to continue to %s');
 
+  define('MODULE_PAYMENT_COINSNAP_TEXT_NOT_STARTED', 'Die Zahlung konnte nicht gestartet werden. Bitte versuchen Sie es in einigen Minuten erneut oder nutzen Sie eine andere Zahlungsart.');
+  define('MODULE_PAYMENT_COINSNAP_TEXT_NOT_PAID', 'Ihre Bitcoin-Zahlung ist nicht eingegangen. Die Bestellung wurde nicht abgeschlossen. Bitte starten Sie die Zahlung erneut.');
+  define('MODULE_PAYMENT_COINSNAP_TEXT_NOT_CONFIRMED', 'Ihre Zahlung konnte gerade nicht abgefragt werden. Falls Sie bereits bezahlt haben, wird die Zahlung trotzdem verbucht. Andernfalls versuchen Sie es bitte in einigen Minuten erneut.');
+
   define('MODULE_PAYMENT_COINSNAP_ZONE_TITLE', 'Zahlungszone');
   define('MODULE_PAYMENT_COINSNAP_ZONE_DESC', 'Wenn eine Zone ausgew&auml;hlt ist, gilt die Zahlungsmethode nur f&uuml;r diese Zone.');
   define('MODULE_PAYMENT_COINSNAP_PAYMENT_ST', 'Zahlungsstatus : ');    
