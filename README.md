@@ -57,6 +57,7 @@ Upload the contents of the `shoproot` directory to the root directory of your Mo
 
 The package contains the relevant files for:
 
+- `admin` (keeps the saved API key when the key field is left empty; if you renamed your admin folder, upload it into that folder)
 - `callback`
 - `includes`
 - `lang`
