@@ -28,7 +28,8 @@ $processor = new \CoinsnapModified\WebhookProcessor(
         'processing' => MODULE_PAYMENT_COINSNAP_PRS_ORDER_STATUS_ID,
         'settled' => MODULE_PAYMENT_COINSNAP_STL_ORDER_STATUS_ID,
         'expired' => MODULE_PAYMENT_COINSNAP_EXP_ORDER_STATUS_ID,
-    ]
+    ],
+    (string) $storeId
 );
 
 // Only the invoice id is taken from the request; the invoice's state comes from the Coinsnap API.

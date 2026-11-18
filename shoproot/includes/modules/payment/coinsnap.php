@@ -1,6 +1,9 @@
 <?php
   require_once(DIR_FS_EXTERNAL.'/coinsnap/autoload.php');
   require_once(DIR_FS_EXTERNAL.'/coinsnap_module/Store.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap_module/Orders.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap_module/InvoiceDecision.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap_module/ReturnCheck.php');
 
   if (!function_exists('coinsnap_cfg_api_key')) {
     // Admin edit field: empty, with a hint; the stored key never reaches the browser.
@@ -29,6 +32,13 @@
     var $referralCode;
     var $signature;
     var $ApiUrl;
+    var $StoreId;
+    var $ApiKey;
+    // The order is created in a waiting status before the payment page, and its checkout (confirmation mail,
+    // cart reset, success page) completes only when the customer returns and the API shows the payment.
+    var $tmpOrders = true;
+    var $tmpStatus;
+    var $form_action_url = '';
     public const WEBHOOK_EVENTS = ['New','Expired','Settled','Processing'];
     
     
@@ -45,6 +55,7 @@
         $this->StoreId = defined('MODULE_PAYMENT_COINSNAP_STORE_ID')?MODULE_PAYMENT_COINSNAP_STORE_ID:'';
         $this->ApiKey = defined('MODULE_PAYMENT_COINSNAP_API_KEY')?MODULE_PAYMENT_COINSNAP_API_KEY:'';
         $this->referralCode = 'D19385';
+        $this->tmpStatus = defined('DEFAULT_ORDERS_STATUS_ID') ? (int) DEFAULT_ORDERS_STATUS_ID : 1;
   
         if (!defined('RUN_MODE_ADMIN') && is_object($order)) {
             $this->update_status();
@@ -118,79 +129,106 @@
       return false;
     }
 
+    // Runs again when the customer comes back to checkout_process.php: the waiting order is completed only
+    // when the API shows one of its invoices paid or being paid (guide 6.6). The first pass has no order yet.
     function before_process() {
-      return false;  
+      if (!isset($_SESSION['tmp_oID']) || !is_numeric($_SESSION['tmp_oID'])) {
+        return false;
+      }
+      $orderId = (int) $_SESSION['tmp_oID'];
+      $storeId = (string) $this->StoreId;
+      $apiKey = (string) $this->ApiKey;
+      $apiUrl = $this->ApiUrl;
+      $result = \CoinsnapModified\ReturnCheck::check(new \CoinsnapModified\Store(), $orderId,
+        static function (string $invoiceId) use ($apiUrl, $apiKey, $storeId): array {
+          return (new \Coinsnap\Client\Invoice($apiUrl, $apiKey))->getInvoice($storeId, $invoiceId)->getData();
+        });
+      if ($result === \CoinsnapModified\ReturnCheck::SEEN) {
+        return false;
+      }
+      error_log('Coinsnap: checkout return for order ' . $orderId . ' without a payment (' . $result . ')');
+      $this->paymentError($result === \CoinsnapModified\ReturnCheck::UNKNOWN ? MODULE_PAYMENT_COINSNAP_TEXT_NOT_CONFIRMED : MODULE_PAYMENT_COINSNAP_TEXT_NOT_PAID);
     }
 
+    // Called by checkout_process.php right after the waiting order was written. The invoice is made from the
+    // stored order: its ot_total in the order's own currency (guide 6.2), never from the session or the request.
+    function payment_action() {
+      global $insert_id, $order, $xtPrice;
 
-    function get_error() {
-      return false;
-    }
-    function after_process() {      
-      global $order, $xtPrice,$insert_id, $_GET;        
-      if (isset($_GET['orderid'])) return false;
-      $currencyCode = $_SESSION['currency'];      
-      if ($_SESSION['customers_status']['customers_status_show_price_tax'] == 0 && $_SESSION['customers_status']['customers_status_add_tax_ot'] == 1) {
-        $total = $order->info['pp_total'] + $order->info['tax'];
-      } else {
-        $total = $order->info['pp_total'];
+      $orderId = (int) (isset($insert_id) ? $insert_id : ($_SESSION['tmp_oID'] ?? 0));
+      $stored = $orderId > 0 ? (new \CoinsnapModified\Orders())->find($orderId) : null;
+      if ($stored === null || ($stored['payment_method'] ?? '') !== $this->code
+          || (int) ($stored['customers_id'] ?? 0) !== (int) ($_SESSION['customer_id'] ?? -1)) {
+        error_log('Coinsnap: payment not started, order ' . $orderId . ' not found');
+        $this->paymentError(MODULE_PAYMENT_COINSNAP_TEXT_NOT_STARTED);
       }
-      
-      $OrderId = $order->info['orders_id'];
-      
-      $amount = round($total, $xtPrice->get_decimal_places($currencyCode));
-      
-      
-      $redirectUrl = xtc_href_link(FILENAME_CHECKOUT_PROCESS, 'orderid=' . $OrderId, 'NONSSL', true, false);
-      
-            
-      $WebhookUrl = $this->getWebhookUrl();        
-      
-      
-      if (!$this->ensureWebhook($WebhookUrl)) {
-          echo 'The payment could not be started. Please try again later.';
-          exit;
+      $currencyCode = (string) $stored['currency'];
+      $decimals = (is_object($xtPrice) && method_exists($xtPrice, 'get_decimal_places')) ? (int) $xtPrice->get_decimal_places($currencyCode) : 2;
+      $amount = number_format(round((float) $stored['total'], $decimals), $decimals, '.', '');
+      if ((float) $amount <= 0) {
+        error_log('Coinsnap: payment not started, order ' . $orderId . ' has no total');
+        $this->paymentError(MODULE_PAYMENT_COINSNAP_TEXT_NOT_STARTED);
       }
-  
 
-      $buyerName =  $order->billing['firstname'].' '.$order->billing['lastname'];
-		  $buyerEmail = $order->customer['email_address'];
+      $store = new \CoinsnapModified\Store();
+      // Recorded so a status the merchant sets by hand later is never overwritten by a webhook (guide 6.8).
+      $store->rememberStatus($orderId, (int) $stored['orders_status']);
 
-		  $metadata = [];
-		  $metadata['orderNumber'] = $OrderId;
-		  $metadata['customerName'] = $buyerName;
-		
-		  $checkoutOptions = new \Coinsnap\Client\InvoiceCheckoutOptions();
-		
-  		$checkoutOptions->setRedirectURL( $redirectUrl );
-	  	$client = new \Coinsnap\Client\Invoice( $this->ApiUrl, $this->ApiKey );			
-		  $camount = \Coinsnap\Util\PreciseNumber::parseFloat($amount,2);
+      if (!$this->ensureWebhook($this->getWebhookUrl())) {
+        $this->paymentError(MODULE_PAYMENT_COINSNAP_TEXT_NOT_STARTED);
+      }
+
+      $redirectUrl = xtc_href_link(FILENAME_CHECKOUT_PROCESS, '', 'SSL', true, false);
+      $buyerName = trim(($order->billing['firstname'] ?? '') . ' ' . ($order->billing['lastname'] ?? ''));
+      $buyerEmail = (string) ($order->customer['email_address'] ?? '');
+
+      $checkoutOptions = new \Coinsnap\Client\InvoiceCheckoutOptions();
+      $checkoutOptions->setRedirectURL($redirectUrl);
+      $client = new \Coinsnap\Client\Invoice($this->ApiUrl, $this->ApiKey);
       try {
         $invoiceData = $client->createInvoice(
           $this->StoreId,
           $currencyCode,
-          $camount,
-          $OrderId,
+          \Coinsnap\Util\PreciseNumber::parseString($amount),
+          (string) $orderId,
           $buyerEmail,
           $buyerName,
           $redirectUrl,
           $this->referralCode,
-          $metadata,
+          ['orderNumber' => $orderId, 'customerName' => $buyerName],
           $checkoutOptions
         )->getData();
       } catch (\Throwable $e) {
-        error_log('Coinsnap: invoice creation failed for order ' . (int) $OrderId . ' (status ' . (int) $e->getCode() . ')');
+        error_log('Coinsnap: invoice creation failed for order ' . $orderId . ' (status ' . (int) $e->getCode() . ')');
         $invoiceData = [];
       }
 
       if (empty($invoiceData['checkoutLink']) || empty($invoiceData['id'])) {
-        echo 'The payment could not be started. Please try again later.';
-        exit;
+        $this->paymentError(MODULE_PAYMENT_COINSNAP_TEXT_NOT_STARTED);
       }
       // Only this invoice, for this amount and currency, can pay the order.
-      (new \CoinsnapModified\Store())->rememberInvoice((string) $invoiceData['id'], (int) $OrderId, $camount->__toString(), (string) $currencyCode);
-      xtc_redirect($invoiceData['checkoutLink']);  
-  
+      $store->rememberInvoice((string) $invoiceData['id'], $orderId, $amount, $currencyCode);
+      xtc_redirect($invoiceData['checkoutLink']);
+    }
+
+    function get_error() {
+      if (!isset($_SESSION['coinsnap_error']) || !is_string($_SESSION['coinsnap_error'])) {
+        return false;
+      }
+      $error = array('title' => MODULE_PAYMENT_COINSNAP_TEXT_TITLE, 'error' => $_SESSION['coinsnap_error']);
+      unset($_SESSION['coinsnap_error']);
+      return $error;
+    }
+
+    function after_process() {
+      unset($_SESSION['coinsnap_error']);
+      return false;
+    }
+
+    // Back to the payment selection with a fixed message; nothing about the API's answer reaches the customer.
+    private function paymentError(string $message) {
+      $_SESSION['coinsnap_error'] = $message;
+      xtc_redirect(xtc_href_link(FILENAME_CHECKOUT_PAYMENT, 'payment_error=' . $this->code, 'SSL'));
     }
 
     function check() {
@@ -224,6 +262,9 @@
 
     function remove() {
       xtc_db_query("delete from " . TABLE_CONFIGURATION . " where configuration_key in ('" . implode("', '", $this->keys()) . "')");
+      // The webhook secrets go with the module; invoice records stay, they are the payment history of existing orders.
+      xtc_db_query("DROP TABLE IF EXISTS `coinsnap_webhook_store`");
+      xtc_db_query("DROP TABLE IF EXISTS `coinsnap_webhook`");
     }
 
     function keys() {
@@ -240,36 +281,47 @@
     }
 
     
-    function getWebhookUrl() {		
-        return xtc_href_link('callback/coinsnap/coinsnap_callback.php');
-    }    
+    // From the shop's configuration (configure.php), never from the request's Host header (guide 6.3), and without
+    // the session id or SEO rewriting that xtc_href_link() may add.
+    function getWebhookUrl() {
+      $server = (defined('ENABLE_SSL') && ENABLE_SSL == true && defined('HTTPS_SERVER') && HTTPS_SERVER != '') ? HTTPS_SERVER : HTTP_SERVER;
+      return rtrim($server, '/') . '/' . ltrim(DIR_WS_CATALOG, '/') . 'callback/coinsnap/coinsnap_callback.php';
+    }
 
-    // True when a webhook with a stored secret is in place, registering one if it is missing.
+    // True when a webhook with a stored secret is in place for this store, registering one if it is missing.
     function ensureWebhook(string $webhookUrl): bool {
       $store = new \CoinsnapModified\Store();
       $client = new \Coinsnap\Client\Webhook($this->ApiUrl, $this->ApiKey);
-      $stored = $store->webhook();
-      if ($stored !== null) {
+      $storeId = (string) $this->StoreId;
+      $stored = $store->webhook($storeId);
+      $legacy = $stored === null ? $store->legacyWebhook() : null;
+      $candidate = $stored ?? $legacy;
+      if ($candidate !== null) {
         try {
-          $existing = $client->getWebhook($this->StoreId, (string) $stored['webhook_id']);
+          $existing = $client->getWebhook($storeId, (string) $candidate['webhook_id']);
           if (($existing->getData()['url'] ?? '') === $webhookUrl) {
+            if ($legacy !== null) {
+              // The pre-release record belongs to this store: keep it under the store's own key (guide 6.4).
+              $store->saveWebhook($storeId, (string) $legacy['webhook_id'], (string) $legacy['secret']);
+            }
             return true;
           }
         } catch (\Coinsnap\Exception\RequestException $e) {
           // An API error is not "no webhook": registering now would replace a working secret.
           if (!in_array($e->getCode(), [400, 404], true)) {
-            return true;
+            return $stored !== null;
           }
         } catch (\Throwable $e) {
-          return true;
+          return $stored !== null;
         }
       }
       return $this->registerWebhook($store, $client, $webhookUrl);
     }
 
     function registerWebhook(\CoinsnapModified\Store $store, \Coinsnap\Client\Webhook $client, string $webhookUrl): bool {
+      $storeId = (string) $this->StoreId;
       try {
-        $webhook = $client->createWebhook($this->StoreId, $webhookUrl, self::WEBHOOK_EVENTS, null)->getData();
+        $webhook = $client->createWebhook($storeId, $webhookUrl, self::WEBHOOK_EVENTS, null)->getData();
       } catch (\Throwable $e) {
         error_log('Coinsnap: webhook could not be registered (status ' . (int) $e->getCode() . ')');
         return false;
@@ -277,13 +329,13 @@
       if (empty($webhook['id']) || empty($webhook['secret'])) {
         return false;
       }
-      $store->saveWebhook((string) $webhook['id'], (string) $webhook['secret']);
+      $store->saveWebhook($storeId, (string) $webhook['id'], (string) $webhook['secret']);
 
       // Version 1.0.0 never stored its webhook's secret; remove those webhooks so only this one delivers.
       try {
-        foreach ($client->getWebhooks($this->StoreId) as $other) {
+        foreach ($client->getWebhooks($storeId) as $other) {
           if (($other->getData()['url'] ?? '') === $webhookUrl && ($other->getData()['id'] ?? '') !== $webhook['id']) {
-            $client->deleteWebhook($this->StoreId, (string) $other->getData()['id']);
+            $client->deleteWebhook($storeId, (string) $other->getData()['id']);
           }
         }
       } catch (\Throwable $e) {

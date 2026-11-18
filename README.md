@@ -147,6 +147,11 @@ Use the support area in your Coinsnap merchant account or join the official [Coi
 - Security: Checkout no longer prints API error details when the webhook cannot be registered.
 - Fix: Every error reply from the Coinsnap API ended in a fatal "class not found" error, because the library loader could not load `CoinsnapException`.
 - Fix: A failed invoice creation shows an error instead of crashing, and a payment server outage no longer registers duplicate webhooks.
+- Security: The order is written in the waiting status before the payment page, but its checkout (confirmation e-mail, voucher credit, cart reset, success page) completes only when the customer returns and the Coinsnap API shows the invoice paid or being paid. Before, the confirmation e-mail went out before payment, and the return URL completed the checkout (and sent the e-mail again) without asking the API.
+- Security: The invoice amount and currency come from the stored order (`ot_total` in the order's currency). Before, a reload of `checkout_process.php` after a currency switch could create an invoice for the same number in a cheaper currency, which the webhook then accepted.
+- Security: The webhook URL is built from the shop configuration (`HTTPS_SERVER`/`HTTP_SERVER` + `DIR_WS_CATALOG`), without session ID or SEO rewriting; the webhook secret is stored per Coinsnap store.
+- Security: A webhook never overwrites an order status the merchant set by hand (only a real late payment may settle an expired order). With the default settings (Processing = Settled status) a payment that is only seen leaves the order in the waiting status until it settles.
+- Security: Orders placed before invoice records existed are accepted for 24 hours after the update only. API requests time out after 20 seconds, and TLS certificate checks cannot be switched off.
 
 ### 1.0.0
 
