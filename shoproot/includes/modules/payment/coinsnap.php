@@ -70,7 +70,8 @@
         }
     }
 
-    // The module is created before admin/modules.php reads the posted settings: an empty key field keeps the stored key.
+    // An empty key field keeps the stored key. admin/modules.php saves without loading this module, so the save itself
+    // is handled by admin/includes/extra/application_top/application_top_end/coinsnap_keep_api_key.php; this covers callers that do load it.
     private function keepStoredApiKey() {
         if (($_GET['action'] ?? '') === 'save' && ($_GET['module'] ?? '') === $this->code
             && isset($_POST['configuration']) && is_array($_POST['configuration'])
