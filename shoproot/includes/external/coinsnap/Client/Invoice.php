@@ -73,9 +73,7 @@ class Invoice extends AbstractClient{
                 json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR)
             );
         } else {
-            print_r($response);
-            exit;
-            //throw $this->getExceptionByStatusCode($method, $url, $response);
+            throw $this->getExceptionByStatusCode($method, $url, $response);
         }
     }
 
@@ -103,7 +101,7 @@ class Invoice extends AbstractClient{
         return $this->_getAllInvoicesWithFilter($storeId, $orderIds);
     }
 
-    private function _getAllInvoicesWithFilter(string $storeId,array $filterByOrderIds = null): \Coinsnap\Result\InvoiceList {
+    private function _getAllInvoicesWithFilter(string $storeId,?array $filterByOrderIds = null): \Coinsnap\Result\InvoiceList {
         $url = $this->getApiUrl().''.COINSNAP_SERVER_PATH.'/'.urlencode($storeId).'/invoices?';
         if ($filterByOrderIds !== null) {
             foreach ($filterByOrderIds as $filterByOrderId) {

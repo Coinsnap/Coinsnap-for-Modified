@@ -8,7 +8,8 @@ spl_autoload_register(function ($className) {
     }
 
     // Convert namespace and class to file path.
-    $filePath =  __DIR__ . str_replace([$searchPattern, '\\'], ['', DIRECTORY_SEPARATOR], $className).'.php';
+    // Strip only the leading prefix: replacing every "Coinsnap" made CoinsnapException unloadable.
+    $filePath =  __DIR__ . str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen($searchPattern))).'.php';
     if (file_exists($filePath)) {
         require_once($filePath);
         return;

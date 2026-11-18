@@ -28,11 +28,13 @@ class CurlClient implements ClientInterface
     }
 
     /**
-     * Use this method if you need to set any special parameters like disable CURLOPT_SSL_VERIFYHOST and CURLOPT_SSL_VERIFYPEER.
+     * Extra cURL options. TLS certificate checks always stay on: without them anyone between the shop and the API
+     * could answer "paid" (plugin security guide).
      * @return void
      */
     public function setCurlOptions(array $options)
     {
+        unset($options[CURLOPT_SSL_VERIFYPEER], $options[CURLOPT_SSL_VERIFYHOST]);
         $this->curlOptions = $options;
     }
 
@@ -59,6 +61,9 @@ class CurlClient implements ClientInterface
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $flatHeaders);
+        // A hanging API must not hold a checkout or webhook request open.
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
         $response = curl_exec($ch);
 
