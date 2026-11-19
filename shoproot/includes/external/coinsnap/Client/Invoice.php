@@ -24,8 +24,9 @@ class Invoice extends AbstractClient{
         $headers = $this->getRequestHeaders();
         $method = 'POST';
 
-        // Prepare metadata.
-        $metaDataMerged = [];
+        // Prepare metadata. The $metaData passed in used to be dropped; orderNumber and customerName from the
+        // parameters still win, as before.
+        $metaDataMerged = is_array($metaData) ? $metaData : [];
         if(!empty($orderId)) $metaDataMerged['orderNumber'] = $orderId;
         if(!empty($customerName)) $metaDataMerged['customerName'] = $customerName;
         

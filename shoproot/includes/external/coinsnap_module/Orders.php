@@ -23,6 +23,17 @@ class Orders
         return $order;
     }
 
+    // The stored order total rows (class, value), in the order's currency.
+    public function totals(int $orderId): array
+    {
+        $rows = [];
+        $query = xtc_db_query("SELECT `class`, `value` FROM " . TABLE_ORDERS_TOTAL . " WHERE `orders_id` = " . (int) $orderId . " ORDER BY `sort_order`");
+        while (is_array($row = xtc_db_fetch_array($query)) && $row !== []) {
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
     public function setStatus(int $orderId, int $statusId, string $comment): void
     {
         xtc_db_query("UPDATE " . TABLE_ORDERS . " SET `orders_status` = " . (int) $statusId . " WHERE `orders_id` = " . (int) $orderId);
