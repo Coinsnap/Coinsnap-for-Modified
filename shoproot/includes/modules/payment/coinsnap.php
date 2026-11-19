@@ -4,6 +4,7 @@
   require_once(DIR_FS_EXTERNAL.'/coinsnap_module/Orders.php');
   require_once(DIR_FS_EXTERNAL.'/coinsnap_module/InvoiceDecision.php');
   require_once(DIR_FS_EXTERNAL.'/coinsnap_module/ReturnCheck.php');
+  require_once(DIR_FS_EXTERNAL.'/coinsnap_module/InvoiceMetadata.php');
 
   if (!function_exists('coinsnap_cfg_api_key')) {
     // Admin edit field: empty, with a hint; the stored key never reaches the browser.
@@ -196,7 +197,8 @@
           $buyerName,
           $redirectUrl,
           $this->referralCode,
-          ['orderNumber' => $orderId, 'customerName' => $buyerName],
+          // orderId / orderNumber stay orders_id: the webhook finds the order by the invoice's orderId.
+          $this->invoiceMetadata($order, $orderId),
           $checkoutOptions
         )->getData();
       } catch (\Throwable $e) {
@@ -210,6 +212,29 @@
       // Only this invoice, for this amount and currency, can pay the order.
       $store->rememberInvoice((string) $invoiceData['id'], $orderId, $amount, $currencyCode);
       xtc_redirect($invoiceData['checkoutLink']);
+    }
+
+    // Order, customer and line-item data for the invoice; a missing field never stops the checkout.
+    private function invoiceMetadata($order, int $orderId): array {
+      try {
+        $data = is_object($order) ? get_object_vars($order) : [];
+        // The checkout's order has no language (only orders loaded from the database do).
+        if (empty($data['info']['language']) && !empty($_SESSION['language'])) {
+          $data['info']['language'] = (string) $_SESSION['language'];
+        }
+        $totals = (new \CoinsnapModified\Orders())->totals($orderId);
+        $server = (defined('ENABLE_SSL') && ENABLE_SSL == true && defined('HTTPS_SERVER') && HTTPS_SERVER != '') ? HTTPS_SERVER : (defined('HTTP_SERVER') ? HTTP_SERVER : '');
+        $orderUrl = $server !== ''
+          ? rtrim($server, '/') . '/' . ltrim((defined('DIR_WS_CATALOG') ? DIR_WS_CATALOG : '/') . (defined('DIR_ADMIN') ? DIR_ADMIN : 'admin/'), '/') . 'orders.php?oID=' . $orderId . '&action=edit'
+          : '';
+        $version = explode('|', (string) $this->signature)[1] ?? '';
+        $metadata = \CoinsnapModified\InvoiceMetadata::build($data, (string) $orderId, $totals, $orderUrl, $version);
+      } catch (\Throwable $e) {
+        $metadata = [];
+      }
+      // As before: the number shown in the admin order list.
+      $metadata['orderNumber'] = $orderId;
+      return $metadata;
     }
 
     function get_error() {
